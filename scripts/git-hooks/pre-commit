@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# check for commits to protected branches
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "main" ] || [ "$branch" = "candidate" ]; then
+  echo "You can't commit directly to a protected branch"
+  exit 1
+fi
+
+# Redirect output to stderr.
+exec 1>&2
+
+# Swiftlint https://woowabros.github.io/tools/2019/08/05/swiftlint-githooks.html
+LINT=$(which swiftlint)
+
+if [[ -e "${LINT}" ]]; then
+  echo "SwiftLint Start"
+else
+  echo "SwiftLint does not exist, download from https://github.com/realm/SwiftLint"
+  exit 1
+fi
+count=0
+
+targets=$(git diff --stat --cached --diff-filter=d --name-only $(git for-each-ref --format='%(upstream:short)' $(git symbolic-ref -q HEAD)) | grep -F ".swift")
+addModifiedFile "${targets[0]}" $count
+export -p | grep SCRIPT_INPUT_FILE
+export SCRIPT_INPUT_FILE_COUNT=$count
+RESULT=$($LINT lint --use-script-input-files --config .swiftlint.yml)
+if [ "$RESULT" == '' ]; then
+  printf "SwiftLint Finished.\n"
+else
+  echo ""
+  printf "SwiftLint Failed. Please check below:\n"
