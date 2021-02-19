@@ -5,7 +5,7 @@
 .vscode/
 
 # SwiftLint
-.swiftlint.yml
+swiftlint.yml
 
 # Xcode
 #
